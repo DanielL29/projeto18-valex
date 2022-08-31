@@ -17,4 +17,4 @@ app.use(express.json())
 app.use(router)
 app.use(errorsHandler)
 
-app.listen(PORT, () => console.log(chalk.yellow(`Server listening at port ${PORT}...`)))
+app.listen(PORT, () => console.log(chalk.bgYellow.red(`Server listening at port ${PORT}...`)))

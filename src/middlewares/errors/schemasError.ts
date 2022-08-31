@@ -1,6 +1,6 @@
 export default function schemasError(messages: object[]): Object {
     return { 
-        code: 'BadRequest', 
+        type: 'error_unprocessable_entity', 
         messages
     }
 }

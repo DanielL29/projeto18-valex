@@ -1,3 +1,7 @@
-const schemas: object = {} // all schemas
+import cardSchema from "./cardSchema.js"
+
+const schemas: object = {
+    card: cardSchema
+} 
 
 export default schemas

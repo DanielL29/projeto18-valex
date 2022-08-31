@@ -1,4 +1,4 @@
-import { connection } from "../database/db.js";
+import connection from "../database/db.js";
 import { mapObjectToUpdateQuery } from "../utils/sqlUtils.js";
 
 export type TransactionTypes =
@@ -12,7 +12,7 @@ export interface Card {
   id: number;
   employeeId: number;
   number: string;
-  cardholderName: string;
+  cardHolderName: string;
   securityCode: string;
   expirationDate: string;
   password?: string;
@@ -53,7 +53,7 @@ export async function findByTypeAndEmployeeId(
 
 export async function findByCardDetails(
   number: string,
-  cardholderName: string,
+  cardHolderName: string,
   expirationDate: string
 ) {
   const result = await connection.query<Card, [string, string, string]>(
@@ -61,7 +61,7 @@ export async function findByCardDetails(
         * 
       FROM cards 
       WHERE number=$1 AND "cardholderName"=$2 AND "expirationDate"=$3`,
-    [number, cardholderName, expirationDate]
+    [number, cardHolderName, expirationDate]
   );
 
   return result.rows[0];
@@ -71,7 +71,7 @@ export async function insert(cardData: CardInsertData) {
   const {
     employeeId,
     number,
-    cardholderName,
+    cardHolderName,
     securityCode,
     expirationDate,
     password,
@@ -81,7 +81,7 @@ export async function insert(cardData: CardInsertData) {
     type,
   } = cardData;
 
-  connection.query(
+  await connection.query(
     `
     INSERT INTO cards ("employeeId", number, "cardholderName", "securityCode",
       "expirationDate", password, "isVirtual", "originalCardId", "isBlocked", type)
@@ -90,7 +90,7 @@ export async function insert(cardData: CardInsertData) {
     [
       employeeId,
       number,
-      cardholderName,
+      cardHolderName,
       securityCode,
       expirationDate,
       password,
@@ -109,7 +109,7 @@ export async function update(id: number, cardData: CardUpdateData) {
       offset: 2,
     });
 
-  connection.query(
+  await connection.query(
     `
     UPDATE cards
       SET ${cardColumns}
@@ -120,5 +120,5 @@ export async function update(id: number, cardData: CardUpdateData) {
 }
 
 export async function remove(id: number) {
-  connection.query<any, [number]>("DELETE FROM cards WHERE id=$1", [id]);
+  await connection.query<any, [number]>("DELETE FROM cards WHERE id=$1", [id]);
 }
