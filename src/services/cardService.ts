@@ -128,4 +128,4 @@ async function blockUnlockCardService(cardId: number, password: string, block: b
     await cardRepository.update(cardId, { isBlocked: block })
 }
 
-export { createCardService, activeCardService, balanceTransactionsRechargesService, blockUnlockCardService }
+export { createCardService, activeCardService, balanceTransactionsRechargesService, blockUnlockCardService, verifyCardAndExpires }
