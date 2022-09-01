@@ -1,6 +1,5 @@
 import schemas from '../../schemas/schemas.js'
 import { Request, NextFunction } from 'express'
-import schemasError from '../errors/schemasError.js'
 
 export default function validateSchemas(schema: string) {
     if(!schemas.hasOwnProperty(schema)) {
@@ -14,14 +13,12 @@ export default function validateSchemas(schema: string) {
         const { error } = schemas[schema].validate(req.body, { abortEarly: false })
 
         if(error) {
-            const messages: object[] = error.details.map((detail: any) => {
-                return { 
-                    key: detail.context.key, 
-                    message: detail.message 
-                }
-            })
+            const messages: object[] = error.details.map((detail: any) => detail.message).join('\n')
 
-            throw schemasError(messages)
+            throw { 
+                type: 'error_unprocessable_entity', 
+                messages
+            }
         }
 
         next()

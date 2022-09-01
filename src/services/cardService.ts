@@ -1,12 +1,14 @@
-import { CardInsertData, findByTypeAndEmployeeId, insert, TransactionTypes } from "../repositories/cardRepository.js";
-import { findByApiKey } from "../repositories/companyRepository.js";
-import { Employee, findById } from "../repositories/employeeRepository.js";
+import * as cardRepository from "../repositories/cardRepository.js";
+import * as companyRepository from "../repositories/companyRepository.js";
+import * as employeeRepository from "../repositories/employeeRepository.js";
 import { faker } from '@faker-js/faker';
 import dayjs from "dayjs";
 import Cryptr from "cryptr";
 import dotenv from 'dotenv'
 
 dotenv.config()
+
+const cryptr = new Cryptr(process.env.CRYPTR_SECRET_KEY)
 
 function errorNotFound(err: string, errPlural: string): object {
     return {
@@ -24,20 +26,20 @@ function formatCardHolderName(name: string): string {
         .join(' ')
 } 
 
-async function validateCardProperties(apiKey: string, employeeId: number, type: TransactionTypes): Promise<Employee> {
-    const isCompanyApiKey: object = await findByApiKey(apiKey)
+async function validateCardProperties(apiKey: string, employeeId: number, type: cardRepository.TransactionTypes): Promise<employeeRepository.Employee> {
+    const isCompanyApiKey: companyRepository.Company = await companyRepository.findByApiKey(apiKey)
 
     if(!isCompanyApiKey) {
         throw errorNotFound('company', 'companies')
     }
 
-    const isEmployee: Employee = await findById(employeeId)
+    const isEmployee: employeeRepository.Employee = await employeeRepository.findById(employeeId)
 
     if(!isEmployee) {
         throw errorNotFound('employee', 'employees')
     }
 
-    const isCardType: object = await findByTypeAndEmployeeId(type, employeeId)
+    const isCardType: cardRepository.Card = await cardRepository.findByTypeAndEmployeeId(type, employeeId)
 
     if(isCardType) {
         throw {
@@ -49,7 +51,7 @@ async function validateCardProperties(apiKey: string, employeeId: number, type: 
     return isEmployee
 }
 
-export default async function cardService(apiKey: string, employeeId: number, type: TransactionTypes) {
+async function createCardService(apiKey: string, employeeId: number, type: cardRepository.TransactionTypes) {
     const { fullName: cardHolderName } = await validateCardProperties(apiKey, employeeId, type)
 
     const cardNumber: string = faker.finance.creditCardNumber('5### #### #### ####')
@@ -58,10 +60,9 @@ export default async function cardService(apiKey: string, employeeId: number, ty
     const date: string[] = dayjs().format('MM/YY').split('/')
     const expirationDate: string = `${date[0]}/${Number(date[1]) + 5}`
 
-    const cryptr = new Cryptr(process.env.CRYPTR_SECRET_KEY)
     const cvc: string = cryptr.encrypt(faker.finance.creditCardCVV())
 
-    const card: CardInsertData = {
+    const card: cardRepository.CardInsertData = {
         number: cardNumber,
         employeeId,
         cardHolderName: cardHolderNameFormatted,
@@ -72,5 +73,45 @@ export default async function cardService(apiKey: string, employeeId: number, ty
         type
     }
 
-    await insert(card)
+    await cardRepository.insert(card)
 }
+
+async function activeCardService(id: number, password: string) {
+    const isCard: cardRepository.Card = await cardRepository.findById(id)
+
+    if(!isCard) {
+        throw errorNotFound('card', 'cards')
+    }
+
+    const dateNow: string = dayjs().format('MM/YY')
+    const isDateExpired: number = dayjs(dateNow).diff(isCard.expirationDate, 'month')
+
+    if(isDateExpired > 0) {
+        throw {
+            type: 'error_card_date_expired',
+            message: 'The current card has expired'
+        }
+    }
+
+    if(isCard.password) {
+        throw {
+            type: 'error_card_already_activated',
+            message: 'The current card has already been activated'
+        }
+    }
+
+    const cvcDescrypted: string = cryptr.decrypt(isCard.securityCode)
+
+    if(cvcDescrypted.length !== 3 || !cvcDescrypted) {
+        throw {
+            type: 'error_cvc_invalid',
+            message: 'Card cvv is invalid!'
+        }
+    }
+
+    const encryptedPassword = cryptr.encrypt(password)
+
+    await cardRepository.update(id, { password: encryptedPassword })
+}
+
+export { createCardService, activeCardService }

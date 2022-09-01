@@ -1,7 +1,8 @@
-import cardSchema from "./cardSchema.js"
+import { cardSchema, activeCardSchema } from "./cardSchema.js"
 
 const schemas: object = {
-    card: cardSchema
+    card: cardSchema,
+    activeCard: activeCardSchema
 } 
 
 export default schemas

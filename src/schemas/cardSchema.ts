@@ -7,4 +7,13 @@ const cardSchema = joi.object({
         .required()
 })
 
-export default cardSchema
+const activeCardSchema = joi.object({
+    password: joi
+        .string()
+        .min(4)
+        .max(4)
+        .pattern(/[0-9]/)
+        .required()
+})
+
+export { cardSchema, activeCardSchema }
