@@ -15,7 +15,7 @@ export default function errorsHandler(err: any, _: any, res: Response, next: Nex
         return res.status(404).send(err.message)
     }
 
-    if(err.type === 'error_card_type_exists') {
+    if(err.type === 'error_conflict') {
         return res.status(409).send(err.message)
     }
 
@@ -23,15 +23,7 @@ export default function errorsHandler(err: any, _: any, res: Response, next: Nex
         return res.status(422).send(err.message)
     }
 
-    if(err.type === 'error_card_date_expired') {
-        return res.status(401).send(err.message)
-    }
-
-    if(err.type === 'error_card_already_activated') {
-        return res.status(409).send(err.message)
-    }
-
-    if(err.type === 'error_cvc_invalid') {
+    if(err.type === 'error_unhautorized') {
         return res.status(401).send(err.message)
     }
 

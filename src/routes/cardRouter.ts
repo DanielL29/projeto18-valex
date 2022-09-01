@@ -1,11 +1,13 @@
 import { Router } from 'express'
-import { activeCard, createCard } from '../controllers/cardController.js'
-import validateSchemas from '../middlewares/validations/validateSchemas.js'
+import { activeCard, blockCard, createCard } from '../controllers/cardController.js'
+import validateSchemas from '../middlewares/validateSchemas.js'
 import verifyCompanyApiKey from '../middlewares/verifyCompanyApiKey.js'
 
 const cardRouter = Router()
 
-cardRouter.post('/cards/:employeeId/create', verifyCompanyApiKey, validateSchemas('card'), createCard)
-cardRouter.post('/cards/:cardId/active', validateSchemas('activeCard'), activeCard)
+cardRouter.post('/cards/:employeeId/create', verifyCompanyApiKey, validateSchemas('type'), createCard)
+cardRouter.post('/cards/:cardId/active', validateSchemas('password'), activeCard)
+cardRouter.get('/cards/:cardId') // balance transactions recharges
+cardRouter.post('/cards/:cardId/block', validateSchemas('password'), blockCard)  
 
 export default cardRouter

@@ -1,4 +1,4 @@
-import schemas from '../../schemas/schemas.js'
+import schemas from '../schemas/schemas.js'
 import { Request, NextFunction } from 'express'
 
 export default function validateSchemas(schema: string) {

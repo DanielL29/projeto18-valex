@@ -1,8 +1,8 @@
-import { cardSchema, activeCardSchema } from "./cardSchema.js"
+import { typeSchema, passwordSchema } from "./cardSchema.js"
 
 const schemas: object = {
-    card: cardSchema,
-    activeCard: activeCardSchema
+    type: typeSchema,
+    password: passwordSchema
 } 
 
 export default schemas

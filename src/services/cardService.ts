@@ -5,17 +5,11 @@ import { faker } from '@faker-js/faker';
 import dayjs from "dayjs";
 import Cryptr from "cryptr";
 import dotenv from 'dotenv'
+import * as errors from "../errors/errorsThrow.js";
 
 dotenv.config()
 
 const cryptr = new Cryptr(process.env.CRYPTR_SECRET_KEY)
-
-function errorNotFound(err: string, errPlural: string): object {
-    return {
-        type: 'error_not_found',
-        message: `This ${err} was not founded, it doesn't be in ${errPlural} datas`
-    }
-}
 
 function formatCardHolderName(name: string): string {
     const upperNameArray: string[] = name.toUpperCase().split(' ')
@@ -30,22 +24,19 @@ async function validateCardProperties(apiKey: string, employeeId: number, type: 
     const isCompanyApiKey: companyRepository.Company = await companyRepository.findByApiKey(apiKey)
 
     if(!isCompanyApiKey) {
-        throw errorNotFound('company', 'companies')
+        throw errors.notFound('company', 'companies')
     }
 
     const isEmployee: employeeRepository.Employee = await employeeRepository.findById(employeeId)
 
     if(!isEmployee) {
-        throw errorNotFound('employee', 'employees')
+        throw errors.notFound('employee', 'employees')
     }
 
     const isCardType: cardRepository.Card = await cardRepository.findByTypeAndEmployeeId(type, employeeId)
 
     if(isCardType) {
-        throw {
-            type: 'error_card_type_exists',
-            message: 'This employee already have a card with this type'
-        }
+        throw errors.conflict('employee', 'have a card with this type')
     }
 
     return isEmployee
@@ -76,42 +67,59 @@ async function createCardService(apiKey: string, employeeId: number, type: cardR
     await cardRepository.insert(card)
 }
 
-async function activeCardService(id: number, password: string) {
-    const isCard: cardRepository.Card = await cardRepository.findById(id)
+async function verifyCardAndExpires(cardId: number): Promise<cardRepository.Card> {
+    const isCard: cardRepository.Card = await cardRepository.findById(cardId)
 
     if(!isCard) {
-        throw errorNotFound('card', 'cards')
+        throw errors.notFound('card', 'cards')
     }
 
     const dateNow: string = dayjs().format('MM/YY')
     const isDateExpired: number = dayjs(dateNow).diff(isCard.expirationDate, 'month')
 
     if(isDateExpired > 0) {
-        throw {
-            type: 'error_card_date_expired',
-            message: 'The current card has expired'
-        }
+        throw errors.unhautorized('Current card has expired.')
     }
 
+    return isCard
+}
+
+async function activeCardService(cardId: number, password: string) {
+    const isCard = await verifyCardAndExpires(cardId)
+
     if(isCard.password) {
-        throw {
-            type: 'error_card_already_activated',
-            message: 'The current card has already been activated'
-        }
+        throw errors.conflict('current card has', 'been activated')
     }
 
     const cvcDescrypted: string = cryptr.decrypt(isCard.securityCode)
 
     if(cvcDescrypted.length !== 3 || !cvcDescrypted) {
-        throw {
-            type: 'error_cvc_invalid',
-            message: 'Card cvv is invalid!'
-        }
+        throw errors.unhautorized('Card cvv is invalid.')
     }
 
-    const encryptedPassword = cryptr.encrypt(password)
+    const encryptedPassword: string = cryptr.encrypt(password)
 
-    await cardRepository.update(id, { password: encryptedPassword })
+    await cardRepository.update(cardId, { password: encryptedPassword })
 }
 
-export { createCardService, activeCardService }
+async function balanceTransactionsRechargesService() {
+
+}
+
+async function blockCardService(cardId: number, password: string) {
+    const isCard = await verifyCardAndExpires(cardId)
+
+    if(isCard.isBlocked) {
+        throw errors.conflict('card is', 'blocked')
+    }
+
+    const decryptedPassword = cryptr.decrypt(isCard.password)
+
+    if(decryptedPassword !== password) {
+        throw errors.unhautorized('Wrong card password.')
+    }
+
+    await cardRepository.update(cardId, { isBlocked: true })
+}
+
+export { createCardService, activeCardService, balanceTransactionsRechargesService, blockCardService }

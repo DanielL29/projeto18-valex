@@ -1,13 +1,13 @@
 import joi from 'joi'
 
-const cardSchema = joi.object({
+const typeSchema = joi.object({
     type: joi
         .string()
         .valid('groceries', 'restaurant', 'transport', 'education', 'health')
         .required()
 })
 
-const activeCardSchema = joi.object({
+const passwordSchema = joi.object({
     password: joi
         .string()
         .min(4)
@@ -16,4 +16,4 @@ const activeCardSchema = joi.object({
         .required()
 })
 
-export { cardSchema, activeCardSchema }
+export { typeSchema, passwordSchema }

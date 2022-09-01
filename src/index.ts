@@ -4,7 +4,7 @@ import cors from 'cors'
 import chalk from 'chalk'
 import dotenv from 'dotenv'
 import router from './routes/router.js'
-import errorsHandler from './middlewares/errors/errorsHandler.js'
+import errorsHandler from './errors/errorsHandler.js'
 
 dotenv.config()
 
