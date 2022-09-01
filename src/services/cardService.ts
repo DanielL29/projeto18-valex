@@ -106,20 +106,26 @@ async function balanceTransactionsRechargesService() {
 
 }
 
-async function blockCardService(cardId: number, password: string) {
+async function blockUnlockCardService(cardId: number, password: string, block: boolean) {
     const isCard = await verifyCardAndExpires(cardId)
 
-    if(isCard.isBlocked) {
-        throw errors.conflict('card is', 'blocked')
+    if(block) {
+        if(isCard.isBlocked) {
+            throw errors.conflict('card is', 'blocked')
+        }
+    } else if(!block) {
+        if(!isCard.isBlocked) {
+            throw errors.conflict('card is', 'unlocked')
+        }
     }
-
+    
     const decryptedPassword = cryptr.decrypt(isCard.password)
 
     if(decryptedPassword !== password) {
         throw errors.unhautorized('Wrong card password.')
     }
 
-    await cardRepository.update(cardId, { isBlocked: true })
+    await cardRepository.update(cardId, { isBlocked: block })
 }
 
-export { createCardService, activeCardService, balanceTransactionsRechargesService, blockCardService }
+export { createCardService, activeCardService, balanceTransactionsRechargesService, blockUnlockCardService }
