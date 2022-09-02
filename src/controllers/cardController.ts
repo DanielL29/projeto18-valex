@@ -21,8 +21,12 @@ async function activeCard(req: Request, res: Response) {
     res.sendStatus(200)
 }
 
-async function balanceTransactionsRecharges(req: Request, res: Response) {
+async function cardBalanceAndTransactions(req: Request, res: Response) {
+    const cardId: number = Number(req.params.cardId)
 
+    const balanceTransactions: cardService.BalanceTransactions = await cardService.cardBalanceTransactionsService(cardId)
+
+    res.status(200).send(balanceTransactions)
 }
 
 function blockUnlockCard(block: boolean) {
@@ -36,4 +40,4 @@ function blockUnlockCard(block: boolean) {
     }
 }
 
-export { createCard, activeCard, balanceTransactionsRecharges, blockUnlockCard }
+export { createCard, activeCard, cardBalanceAndTransactions, blockUnlockCard }

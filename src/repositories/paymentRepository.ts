@@ -18,6 +18,7 @@ export async function findByCardId(cardId: number) {
      FROM payments 
       JOIN businesses ON businesses.id=payments."businessId"
      WHERE "cardId"=$1
+     ORDER BY payments.id DESC
     `,
     [cardId]
   );

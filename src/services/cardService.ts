@@ -1,6 +1,8 @@
 import * as cardRepository from "../repositories/cardRepository.js";
 import * as companyRepository from "../repositories/companyRepository.js";
 import * as employeeRepository from "../repositories/employeeRepository.js";
+import * as paymentRepository from "../repositories/paymentRepository.js";
+import * as rechargeRepository from "../repositories/rechargeRepository.js";
 import { faker } from '@faker-js/faker';
 import dayjs from "dayjs";
 import Cryptr from "cryptr";
@@ -10,6 +12,12 @@ import * as errors from "../errors/errorsThrow.js";
 dotenv.config()
 
 const cryptr = new Cryptr(process.env.CRYPTR_SECRET_KEY)
+
+export interface BalanceTransactions {
+    balance: number
+    transactions: paymentRepository.PaymentWithBusinessName[]
+    recharges: rechargeRepository.Recharge[]
+}
 
 function formatCardHolderName(name: string): string {
     const upperNameArray: string[] = name.toUpperCase().split(' ')
@@ -67,18 +75,20 @@ async function createCardService(apiKey: string, employeeId: number, type: cardR
     await cardRepository.insert(card)
 }
 
-async function verifyCardExpiresPassword(cardId: number, password: boolean = false): Promise<cardRepository.Card> {
+async function verifyCardExpiresPassword(cardId: number, dateExpires: boolean = true, password: boolean = false): Promise<cardRepository.Card> {
     const isCard: cardRepository.Card = await cardRepository.findById(cardId)
 
     if(!isCard) {
         throw errors.notFound('card', 'cards')
     }
 
-    const dateNow: string = dayjs().format('MM/YY')
-    const isDateExpired: number = dayjs(dateNow).diff(isCard.expirationDate, 'month')
+    if(dateExpires) {
+        const dateNow: string = dayjs().format('MM/YY')
+        const isDateExpired: number = dayjs(dateNow).diff(isCard.expirationDate, 'month')
 
-    if(isDateExpired > 0) {
-        throw errors.unhautorized('Current card has expired.')
+        if(isDateExpired > 0) {
+            throw errors.unhautorized('Current card has expired.')
+        }
     }
 
     if(password) {
@@ -90,7 +100,7 @@ async function verifyCardExpiresPassword(cardId: number, password: boolean = fal
     return isCard
 }
 
-function decryptPassword(encryptedPassword: string, password) {
+function decryptAndVerifyPassword(encryptedPassword: string, password) {
     const decryptedPassword: string = cryptr.decrypt(encryptedPassword)
 
     if(decryptedPassword !== password) {
@@ -116,8 +126,26 @@ async function activeCardService(cardId: number, password: string) {
     await cardRepository.update(cardId, { password: encryptedPassword })
 }
 
-async function balanceTransactionsRechargesService() {
+function convertTimestampToDate(array: any[]): any[] {
+    return array.map(object => {
+        return {
+            ...object,
+            timestamp: dayjs(object.timestamp).format('DD/MM/YYYY')
+        }
+    })
+}
 
+async function cardBalanceTransactionsService(cardId: number): Promise<BalanceTransactions>  {
+    await verifyCardExpiresPassword(cardId, false)
+
+    const balance: number = await paymentRepository.balance(cardId)
+    let transactionsTimestamp: paymentRepository.PaymentWithBusinessName[] = await paymentRepository.findByCardId(cardId)
+    let rechargesTimestamp: rechargeRepository.Recharge[] = await rechargeRepository.findByCardId(cardId)
+
+    const transactions = convertTimestampToDate(transactionsTimestamp)
+    const recharges = convertTimestampToDate(rechargesTimestamp)
+
+    return { balance, transactions, recharges }
 }
 
 async function blockUnlockCardService(cardId: number, password: string, block: boolean) {
@@ -133,7 +161,7 @@ async function blockUnlockCardService(cardId: number, password: string, block: b
         }
     }
     
-    decryptPassword(isCard.password, password)
+    decryptAndVerifyPassword(isCard.password, password)
 
     await cardRepository.update(cardId, { isBlocked: block })
 }
@@ -141,8 +169,8 @@ async function blockUnlockCardService(cardId: number, password: string, block: b
 export { 
     createCardService, 
     activeCardService, 
-    balanceTransactionsRechargesService, 
+    cardBalanceTransactionsService, 
     blockUnlockCardService, 
     verifyCardExpiresPassword, 
-    decryptPassword 
+    decryptAndVerifyPassword 
 }

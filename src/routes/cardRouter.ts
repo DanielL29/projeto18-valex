@@ -7,7 +7,7 @@ const cardRouter = Router()
 
 cardRouter.post('/cards/:employeeId/create', verifyCompanyApiKey, validateSchemas('type'), cardController.createCard)
 cardRouter.post('/cards/:cardId/active', validateSchemas('password'), cardController.activeCard)
-cardRouter.get('/cards/:cardId') // balance transactions recharges
+cardRouter.get('/cards/:cardId', cardController.cardBalanceAndTransactions) 
 cardRouter.post('/cards/:cardId/block', validateSchemas('password'), cardController.blockUnlockCard(true))  
 cardRouter.post('/cards/:cardId/unlock', validateSchemas('password'), cardController.blockUnlockCard(false))  
 

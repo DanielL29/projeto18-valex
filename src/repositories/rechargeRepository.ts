@@ -10,7 +10,7 @@ export type RechargeInsertData = Omit<Recharge, "id" | "timestamp">;
 
 export async function findByCardId(cardId: number) {
   const result = await connection.query<Recharge, [number]>(
-    `SELECT * FROM recharges WHERE "cardId"=$1`,
+    `SELECT * FROM recharges WHERE "cardId"=$1 ORDER BY id DESC`,
     [cardId]
   );
 
