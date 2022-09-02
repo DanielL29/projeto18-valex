@@ -27,5 +27,9 @@ export default function errorsHandler(err: any, _: any, res: Response, next: Nex
         return res.status(401).send(err.message)
     }
 
+    if(err.type === 'error_bad_request') {
+        return res.status(400).send(err.message)
+    }
+
     return res.status(500).send(err)
 }

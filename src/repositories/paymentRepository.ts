@@ -33,3 +33,25 @@ export async function insert(paymentData: PaymentInsertData) {
     [cardId, businessId, amount]
   );
 }
+
+export async function balance(cardId: number) {
+  const result = await connection.query<any, [number]>(`
+    SELECT (
+      (
+        SELECT 
+          COALESCE(SUM(r.amount), 0) 
+        FROM recharges r 
+        WHERE r."cardId" = c.id
+      ) - (
+        SELECT 
+          COALESCE(SUM(p.amount), 0) 
+        FROM payments p 
+        WHERE p."cardId" = c.id
+      )
+    )::FLOAT AS balance
+    FROM cards c 
+    WHERE c.id = $1
+  `, [cardId])
+
+  return result.rows[0].balance
+}

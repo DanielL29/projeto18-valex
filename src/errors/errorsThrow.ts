@@ -19,4 +19,11 @@ function unhautorized(err: string): object {
     }
 }
 
-export { notFound, conflict, unhautorized }
+function badRequest(err: string): object {
+    return {
+        type: 'error_bad_request',
+        message: err
+    }
+}
+
+export { notFound, conflict, unhautorized, badRequest }

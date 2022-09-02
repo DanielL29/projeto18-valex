@@ -67,7 +67,7 @@ async function createCardService(apiKey: string, employeeId: number, type: cardR
     await cardRepository.insert(card)
 }
 
-async function verifyCardAndExpires(cardId: number): Promise<cardRepository.Card> {
+async function verifyCardExpiresPassword(cardId: number, password: boolean = false): Promise<cardRepository.Card> {
     const isCard: cardRepository.Card = await cardRepository.findById(cardId)
 
     if(!isCard) {
@@ -81,11 +81,25 @@ async function verifyCardAndExpires(cardId: number): Promise<cardRepository.Card
         throw errors.unhautorized('Current card has expired.')
     }
 
+    if(password) {
+        if(!isCard.password) {
+            throw errors.badRequest('This card has not been actived yet')
+        }
+    }
+
     return isCard
 }
 
+function decryptPassword(encryptedPassword: string, password) {
+    const decryptedPassword: string = cryptr.decrypt(encryptedPassword)
+
+    if(decryptedPassword !== password) {
+        throw errors.unhautorized('Wrong card password.')
+    }
+}
+
 async function activeCardService(cardId: number, password: string) {
-    const isCard = await verifyCardAndExpires(cardId)
+    const isCard: cardRepository.Card = await verifyCardExpiresPassword(cardId)
 
     if(isCard.password) {
         throw errors.conflict('current card has', 'been activated')
@@ -107,7 +121,7 @@ async function balanceTransactionsRechargesService() {
 }
 
 async function blockUnlockCardService(cardId: number, password: string, block: boolean) {
-    const isCard = await verifyCardAndExpires(cardId)
+    const isCard: cardRepository.Card = await verifyCardExpiresPassword(cardId)
 
     if(block) {
         if(isCard.isBlocked) {
@@ -119,13 +133,16 @@ async function blockUnlockCardService(cardId: number, password: string, block: b
         }
     }
     
-    const decryptedPassword = cryptr.decrypt(isCard.password)
-
-    if(decryptedPassword !== password) {
-        throw errors.unhautorized('Wrong card password.')
-    }
+    decryptPassword(isCard.password, password)
 
     await cardRepository.update(cardId, { isBlocked: block })
 }
 
-export { createCardService, activeCardService, balanceTransactionsRechargesService, blockUnlockCardService, verifyCardAndExpires }
+export { 
+    createCardService, 
+    activeCardService, 
+    balanceTransactionsRechargesService, 
+    blockUnlockCardService, 
+    verifyCardExpiresPassword, 
+    decryptPassword 
+}
