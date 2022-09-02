@@ -4,6 +4,6 @@ import validateSchemas from '../middlewares/validateSchemas.js'
 
 const rechargeRouter = Router()
 
-rechargeRouter.post('/recharges/:cardId', validateSchemas('amount'), rechargeController.recharge)
+rechargeRouter.post('/recharges/:cardId/recharge', validateSchemas('amount'), rechargeController.recharge)
 
 export default rechargeRouter

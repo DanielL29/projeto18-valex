@@ -4,6 +4,6 @@ import validateSchemas from '../middlewares/validateSchemas.js'
 
 const paymentRouter = Router()
 
-paymentRouter.post('/payments/:cardId/:businessId', validateSchemas('amount'), paymentController.paymentPos)
+paymentRouter.post('/payments/:cardId/:businessId/pay', validateSchemas('amount'), paymentController.paymentPos)
 
 export default paymentRouter

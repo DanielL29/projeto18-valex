@@ -13,11 +13,11 @@ export default function validateSchemas(schema: string) {
         const { error } = schemas[schema].validate(req.body, { abortEarly: false })
 
         if(error) {
-            const messages: object[] = error.details.map((detail: any) => detail.message).join('\n')
+            const message: object[] = error.details.map((detail: any) => detail.message).join('\n')
 
             throw { 
                 type: 'error_unprocessable_entity', 
-                messages
+                message
             }
         }
 
