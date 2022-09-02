@@ -6,6 +6,7 @@ import * as rechargeRepository from "../repositories/rechargeRepository.js";
 import { faker } from '@faker-js/faker';
 import dayjs from "dayjs";
 import Cryptr from "cryptr";
+import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
 import * as errors from "../errors/errorsThrow.js";
 
@@ -50,29 +51,32 @@ async function validateCardProperties(apiKey: string, employeeId: number, type: 
     return isEmployee
 }
 
+function generateNumberDateCvv(): cardRepository.CardUpdateData {
+    const cardNumber: string = faker.finance.creditCardNumber('mastercard')
+    const date: string[] = dayjs().format('MM/YY').split('/')
+    const expirationDate: string = `${date[0]}/${Number(date[1]) + 5}`
+    const cvc: string = cryptr.encrypt(faker.finance.creditCardCVV())
+
+    return { number: cardNumber, expirationDate, securityCode: cvc }
+}
+
 async function createCardService(apiKey: string, employeeId: number, type: cardRepository.TransactionTypes) {
     const { fullName: cardHolderName } = await validateCardProperties(apiKey, employeeId, type)
 
-    const cardNumber: string = faker.finance.creditCardNumber('5### #### #### ####')
     const cardHolderNameFormatted: string = formatCardHolderName(cardHolderName) 
+    
+    const { number, expirationDate, securityCode } = generateNumberDateCvv()
 
-    const date: string[] = dayjs().format('MM/YY').split('/')
-    const expirationDate: string = `${date[0]}/${Number(date[1]) + 5}`
-
-    const cvc: string = cryptr.encrypt(faker.finance.creditCardCVV())
-
-    const card: cardRepository.CardInsertData = {
-        number: cardNumber,
+    await cardRepository.insert({
+        number,
         employeeId,
-        cardHolderName: cardHolderNameFormatted,
-        securityCode: cvc,
+        cardholderName: cardHolderNameFormatted,
+        securityCode,
         expirationDate,
         isVirtual: false,
         isBlocked: false,
         type
-    }
-
-    await cardRepository.insert(card)
+    })
 }
 
 async function verifyCardExpiresPassword(cardId: number, dateExpires: boolean = true, password: boolean = false): Promise<cardRepository.Card> {
@@ -100,10 +104,8 @@ async function verifyCardExpiresPassword(cardId: number, dateExpires: boolean = 
     return isCard
 }
 
-function decryptAndVerifyPassword(encryptedPassword: string, password) {
-    const decryptedPassword: string = cryptr.decrypt(encryptedPassword)
-
-    if(decryptedPassword !== password) {
+function decryptAndVerifyPassword(encryptedPassword: string, password: string) {
+    if(!bcrypt.compareSync(password, encryptedPassword)) {
         throw errors.unhautorized('Wrong card password.')
     }
 }
@@ -121,7 +123,7 @@ async function activeCardService(cardId: number, password: string) {
         throw errors.unhautorized('Card cvv is invalid.')
     }
 
-    const encryptedPassword: string = cryptr.encrypt(password)
+    const encryptedPassword: string = bcrypt.hashSync(password, 10)
 
     await cardRepository.update(cardId, { password: encryptedPassword })
 }
@@ -172,5 +174,6 @@ export {
     cardBalanceTransactionsService, 
     blockUnlockCardService, 
     verifyCardExpiresPassword, 
-    decryptAndVerifyPassword 
+    decryptAndVerifyPassword,
+    generateNumberDateCvv
 }

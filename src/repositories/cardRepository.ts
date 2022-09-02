@@ -12,7 +12,7 @@ export interface Card {
   id: number;
   employeeId: number;
   number: string;
-  cardHolderName: string;
+  cardholderName: string;
   securityCode: string;
   expirationDate: string;
   password?: string;
@@ -71,7 +71,7 @@ export async function insert(cardData: CardInsertData) {
   const {
     employeeId,
     number,
-    cardHolderName,
+    cardholderName,
     securityCode,
     expirationDate,
     password,
@@ -90,7 +90,7 @@ export async function insert(cardData: CardInsertData) {
     [
       employeeId,
       number,
-      cardHolderName,
+      cardholderName,
       securityCode,
       expirationDate,
       password,
