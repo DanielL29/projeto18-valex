@@ -64,9 +64,9 @@ async function paymentOnlineService(cardId: number, businessId: number, virtualC
     }
 
     await validateBusinessAndType(isCard.type, businessId)
-    await verifyBlockBalance(isCard.isBlocked, isCard.originalCardId, amount)
+    await verifyBlockBalance(isCard.isBlocked, isCard.originalCardId ?? cardId, amount)
 
-    await paymentRepository.insert({ cardId: isCard.originalCardId, businessId, amount })
+    await paymentRepository.insert({ cardId: isCard.originalCardId ?? cardId, businessId, amount })
 }
 
 export { paymentPosService, paymentOnlineService }
