@@ -24,6 +24,7 @@ export interface Card {
 
 export type CardInsertData = Omit<Card, "id">;
 export type CardUpdateData = Partial<Card>;
+export type VirtualCard = CardUpdateData & { amount: number }
 
 export async function find() {
   const result = await connection.query<Card>("SELECT * FROM cards");

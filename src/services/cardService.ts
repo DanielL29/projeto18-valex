@@ -149,7 +149,11 @@ function convertTimestampToDate(array: any[]): any[] {
 }
 
 async function cardBalanceTransactionsService(cardId: number): Promise<BalanceTransactions>  {
-    await verifyCardInfos(cardId, false, false, false)
+    const isCard: cardRepository.Card = await verifyCardInfos(cardId, false, false, false)
+
+    if(isCard.isVirtual) {
+        cardId = isCard.originalCardId
+    }
 
     const balance: number = await paymentRepository.balance(cardId)
     let transactionsTimestamp: paymentRepository.PaymentWithBusinessName[] = await paymentRepository.findByCardId(cardId)
@@ -162,7 +166,7 @@ async function cardBalanceTransactionsService(cardId: number): Promise<BalanceTr
 }
 
 async function blockUnlockCardService(cardId: number, password: string, block: boolean) {
-    const isCard: cardRepository.Card = await verifyCardInfos(cardId)
+    const isCard: cardRepository.Card = await verifyCardInfos(cardId, true, false, false)
 
     if(block) {
         if(isCard.isBlocked) {
