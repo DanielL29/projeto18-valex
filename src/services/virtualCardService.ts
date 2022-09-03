@@ -3,7 +3,7 @@ import * as cardServices from '../services/cardService.js'
 import * as errors from '../errors/errorsThrow.js'
 
 async function createVirtualCardService(cardId: number, password: string) {
-    const isCard: cardRepository.Card = await cardServices.verifyCardExpiresPassword(cardId, false)
+    const isCard: cardRepository.Card = await cardServices.verifyCardInfos(cardId, false, false, false)
 
     cardServices.decryptAndVerifyPassword(isCard.password, password)
 
@@ -24,7 +24,7 @@ async function createVirtualCardService(cardId: number, password: string) {
 }
 
 async function deleteVirtualCardService(cardId: number, password: string) {
-    const isCard: cardRepository.Card = await cardServices.verifyCardExpiresPassword(cardId, false)
+    const isCard: cardRepository.Card = await cardServices.verifyCardInfos(cardId, false, false, false)
 
     if(!isCard.isVirtual) {
         throw errors.badRequest('This card is not a virtual card')

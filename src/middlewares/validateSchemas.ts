@@ -1,7 +1,7 @@
 import schemas from '../schemas/schemas.js'
 import { Request, NextFunction } from 'express'
 
-export default function validateSchemas(schema: string) {
+export default function validateSchemas(schema: string): any {
     if(!schemas.hasOwnProperty(schema)) {
         throw {
             type: 'error_missing_schema',

@@ -17,7 +17,7 @@ async function validateBusinessAndType(type: cardRepository.TransactionTypes, bu
 }
 
 async function paymentPosService(cardId: number, businessId: number, amount: number, password: string) {
-    const isCard: cardRepository.Card = await cardServices.verifyCardExpiresPassword(cardId, true, true)
+    const isCard: cardRepository.Card = await cardServices.verifyCardInfos(cardId, true, true)
 
     if(isCard.isBlocked) {
         throw errors.unhautorized('This card is blocked')

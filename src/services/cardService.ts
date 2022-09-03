@@ -79,11 +79,22 @@ async function createCardService(apiKey: string, employeeId: number, type: cardR
     })
 }
 
-async function verifyCardExpiresPassword(cardId: number, dateExpires: boolean = true, password: boolean = false): Promise<cardRepository.Card> {
+async function verifyCardInfos(
+    cardId: number, 
+    dateExpires: boolean = true, 
+    password: boolean = false, 
+    virtual: boolean = true
+): Promise<cardRepository.Card> {
     const isCard: cardRepository.Card = await cardRepository.findById(cardId)
 
     if(!isCard) {
         throw errors.notFound('card', 'cards')
+    }
+
+    if(virtual) {
+        if(isCard.isVirtual) {
+            throw errors.unhautorized(`This is a virtual card!`)
+        }
     }
 
     if(dateExpires) {
@@ -111,7 +122,7 @@ function decryptAndVerifyPassword(encryptedPassword: string, password: string) {
 }
 
 async function activeCardService(cardId: number, password: string) {
-    const isCard: cardRepository.Card = await verifyCardExpiresPassword(cardId)
+    const isCard: cardRepository.Card = await verifyCardInfos(cardId)
 
     if(isCard.password) {
         throw errors.conflict('current card has', 'been activated')
@@ -138,7 +149,7 @@ function convertTimestampToDate(array: any[]): any[] {
 }
 
 async function cardBalanceTransactionsService(cardId: number): Promise<BalanceTransactions>  {
-    await verifyCardExpiresPassword(cardId, false)
+    await verifyCardInfos(cardId, false, false, false)
 
     const balance: number = await paymentRepository.balance(cardId)
     let transactionsTimestamp: paymentRepository.PaymentWithBusinessName[] = await paymentRepository.findByCardId(cardId)
@@ -151,7 +162,7 @@ async function cardBalanceTransactionsService(cardId: number): Promise<BalanceTr
 }
 
 async function blockUnlockCardService(cardId: number, password: string, block: boolean) {
-    const isCard: cardRepository.Card = await verifyCardExpiresPassword(cardId)
+    const isCard: cardRepository.Card = await verifyCardInfos(cardId)
 
     if(block) {
         if(isCard.isBlocked) {
@@ -173,7 +184,7 @@ export {
     activeCardService, 
     cardBalanceTransactionsService, 
     blockUnlockCardService, 
-    verifyCardExpiresPassword, 
+    verifyCardInfos, 
     decryptAndVerifyPassword,
     generateNumberDateCvv
 }
