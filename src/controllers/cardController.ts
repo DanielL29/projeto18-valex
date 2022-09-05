@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { BalanceTransactions } from '../interfaces/cardInterface.js'
+import { BalanceTransactions, Card } from '../interfaces/cardInterface.js'
 import * as cardService from '../services/cardService.js'
 import { TransactionTypes } from '../types/cardTypes.js'
 
@@ -8,7 +8,7 @@ async function createCard(req: Request, res: Response) {
     const { type }: { type: TransactionTypes } = req.body
     const employeeId: number = Number(req.params.employeeId)
 
-    const card = await cardService.createCardService(apiKey, employeeId, type)
+    const card: Card = await cardService.createCardService(apiKey, employeeId, type)
         
     res.status(201).send(card)
 }

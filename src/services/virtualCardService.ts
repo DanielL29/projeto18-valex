@@ -4,7 +4,7 @@ import * as errors from '../errors/errorsThrow.js'
 import { Card } from '../interfaces/cardInterface.js'
 import { CardInsertData } from '../types/cardTypes.js'
 
-async function createVirtualCardService(cardId: number, password: string): Promise<CardInsertData> {
+async function createVirtualCardService(cardId: number, password: string): Promise<Card> {
     const isCard: Card = await cardServices.verifyCardInfos(cardId, false, false)
 
     cardServices.decryptAndVerifyPassword(isCard.password, password)
@@ -24,12 +24,12 @@ async function createVirtualCardService(cardId: number, password: string): Promi
         type: isCard.type
     }
 
-    await cardRepository.insert(virtualCard)
+    const { id } = await cardRepository.insert(virtualCard)
 
     virtualCard.securityCode = cardServices.decrypteCvv(securityCode)
     delete virtualCard.password
 
-    return virtualCard
+    return { id, ...virtualCard }
 }
 
 async function deleteVirtualCardService(cardId: number, password: string) {

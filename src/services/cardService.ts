@@ -56,7 +56,7 @@ function decrypteCvv(cvv: string): string {
     return cryptr.decrypt(cvv)
 }
 
-async function createCardService(apiKey: string, employeeId: number, type: TransactionTypes): Promise<CardInsertData> {
+async function createCardService(apiKey: string, employeeId: number, type: TransactionTypes): Promise<Card> {
     const { fullName: cardHolderName } = await validateCardProperties(apiKey, employeeId, type)
 
     const cardHolderNameFormatted: string = formatCardHolderName(cardHolderName) 
@@ -74,11 +74,11 @@ async function createCardService(apiKey: string, employeeId: number, type: Trans
         type
     }
 
-    await cardRepository.insert(card)
+    const { id } = await cardRepository.insert(card)
 
     card.securityCode = decrypteCvv(securityCode)
 
-    return card
+    return { id, ...card }
 }
 
 async function verifyCardInfos(
