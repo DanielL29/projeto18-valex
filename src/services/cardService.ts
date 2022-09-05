@@ -9,7 +9,7 @@ import Cryptr from "cryptr";
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
 import * as errors from "../errors/errorsThrow.js";
-import { CardUpdateData, TransactionTypes } from "../types/cardTypes.js";
+import { CardInsertData, CardUpdateData, TransactionTypes } from "../types/cardTypes.js";
 import { Employee } from "../interfaces/employeeInterface.js";
 import { Company } from "../interfaces/companyInterface.js";
 import { BalanceTransactions, Card } from "../interfaces/cardInterface.js";
@@ -56,14 +56,14 @@ function decrypteCvv(cvv: string): string {
     return cryptr.decrypt(cvv)
 }
 
-async function createCardService(apiKey: string, employeeId: number, type: TransactionTypes): Promise<CardUpdateData> {
+async function createCardService(apiKey: string, employeeId: number, type: TransactionTypes): Promise<CardInsertData> {
     const { fullName: cardHolderName } = await validateCardProperties(apiKey, employeeId, type)
 
     const cardHolderNameFormatted: string = formatCardHolderName(cardHolderName) 
     
     const { number, expirationDate, securityCode } = generateNumberDateCvv()
 
-    await cardRepository.insert({
+    const card: CardInsertData = {
         number,
         employeeId,
         cardholderName: cardHolderNameFormatted,
@@ -72,9 +72,13 @@ async function createCardService(apiKey: string, employeeId: number, type: Trans
         isVirtual: false,
         isBlocked: true,
         type
-    })
+    }
 
-    return { securityCode: decrypteCvv(securityCode) }
+    await cardRepository.insert(card)
+
+    card.securityCode = decrypteCvv(securityCode)
+
+    return card
 }
 
 async function verifyCardInfos(

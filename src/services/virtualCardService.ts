@@ -2,15 +2,16 @@ import * as cardRepository from '../repositories/cardRepository.js'
 import * as cardServices from '../services/cardService.js'
 import * as errors from '../errors/errorsThrow.js'
 import { Card } from '../interfaces/cardInterface.js'
+import { CardInsertData } from '../types/cardTypes.js'
 
-async function createVirtualCardService(cardId: number, password: string) {
+async function createVirtualCardService(cardId: number, password: string): Promise<CardInsertData> {
     const isCard: Card = await cardServices.verifyCardInfos(cardId, false, false)
 
     cardServices.decryptAndVerifyPassword(isCard.password, password)
 
     const { number, expirationDate, securityCode } = cardServices.generateNumberDateCvv()
 
-    await cardRepository.insert({
+    const virtualCard: CardInsertData = {
         number,
         employeeId: isCard.employeeId,
         cardholderName: isCard.cardholderName,
@@ -21,9 +22,14 @@ async function createVirtualCardService(cardId: number, password: string) {
         password: isCard.password,
         originalCardId: isCard.id,
         type: isCard.type
-    })
+    }
 
-    return { securityCode: cardServices.decrypteCvv(securityCode) }
+    await cardRepository.insert(virtualCard)
+
+    virtualCard.securityCode = cardServices.decrypteCvv(securityCode)
+    delete virtualCard.password
+
+    return virtualCard
 }
 
 async function deleteVirtualCardService(cardId: number, password: string) {

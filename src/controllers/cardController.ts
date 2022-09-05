@@ -8,9 +8,9 @@ async function createCard(req: Request, res: Response) {
     const { type }: { type: TransactionTypes } = req.body
     const employeeId: number = Number(req.params.employeeId)
 
-    const securityCode = await cardService.createCardService(apiKey, employeeId, type)
+    const card = await cardService.createCardService(apiKey, employeeId, type)
         
-    res.status(201).send(securityCode)
+    res.status(201).send(card)
 }
 
 async function activeCard(req: Request, res: Response) {
