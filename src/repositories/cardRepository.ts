@@ -1,30 +1,7 @@
 import connection from "../database/db.js";
+import { Card } from "../interfaces/cardInterface.js";
+import { CardInsertData, CardUpdateData, TransactionTypes } from "../types/cardTypes.js";
 import { mapObjectToUpdateQuery } from "../utils/sqlUtils.js";
-
-export type TransactionTypes =
-  | "groceries"
-  | "restaurant"
-  | "transport"
-  | "education"
-  | "health";
-
-export interface Card {
-  id: number;
-  employeeId: number;
-  number: string;
-  cardholderName: string;
-  securityCode: string;
-  expirationDate: string;
-  password?: string;
-  isVirtual: boolean;
-  originalCardId?: number;
-  isBlocked: boolean;
-  type: TransactionTypes;
-}
-
-export type CardInsertData = Omit<Card, "id">;
-export type CardUpdateData = Partial<Card>;
-export type VirtualCard = CardUpdateData & { amount: number }
 
 export async function find() {
   const result = await connection.query<Card>("SELECT * FROM cards");

@@ -7,7 +7,7 @@ async function recharge(req: Request, res: Response) {
 
     await rechargeService.rechargeCardService(cardId, amount)
 
-    res.sendStatus(201)
+    res.sendStatus(200)
 }
 
 export { recharge }

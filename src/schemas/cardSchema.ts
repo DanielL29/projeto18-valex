@@ -13,7 +13,8 @@ const passwordSchema = joi.object({
         .min(4)
         .max(4)
         .pattern(/[0-9]/)
-        .required()
+        .required(),
+    securityCode: joi.string().min(3).max(3).pattern(/[0-9]/)
 })
 
 export { typeSchema, passwordSchema }

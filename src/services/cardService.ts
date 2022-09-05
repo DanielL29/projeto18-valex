@@ -9,40 +9,32 @@ import Cryptr from "cryptr";
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
 import * as errors from "../errors/errorsThrow.js";
+import { CardUpdateData, TransactionTypes } from "../types/cardTypes.js";
+import { Employee } from "../interfaces/employeeInterface.js";
+import { Company } from "../interfaces/companyInterface.js";
+import { BalanceTransactions, Card } from "../interfaces/cardInterface.js";
+import { PaymentWithBusinessName } from "../types/paymentTypes.js";
+import { Recharge } from "../interfaces/rechargeInterface.js";
+import { convertTimestampToDate, formatCardHolderName } from "../utils/cardUtils.js";
 
 dotenv.config()
 
 const cryptr = new Cryptr(process.env.CRYPTR_SECRET_KEY)
 
-export interface BalanceTransactions {
-    balance: number
-    transactions: paymentRepository.PaymentWithBusinessName[]
-    recharges: rechargeRepository.Recharge[]
-}
-
-function formatCardHolderName(name: string): string {
-    const upperNameArray: string[] = name.toUpperCase().split(' ')
-
-    return upperNameArray
-        .filter((name, i) => i === 0 || i === upperNameArray.length - 1 || name.length >= 3)
-        .map((name, i, array) => i !== 0 && i !== array.length - 1 ? name[0] : name)
-        .join(' ')
-} 
-
-async function validateCardProperties(apiKey: string, employeeId: number, type: cardRepository.TransactionTypes): Promise<employeeRepository.Employee> {
-    const isCompanyApiKey: companyRepository.Company = await companyRepository.findByApiKey(apiKey)
+async function validateCardProperties(apiKey: string, employeeId: number, type: TransactionTypes): Promise<Employee> {
+    const isCompanyApiKey: Company = await companyRepository.findByApiKey(apiKey)
 
     if(!isCompanyApiKey) {
         throw errors.notFound('company', 'companies')
     }
 
-    const isEmployee: employeeRepository.Employee = await employeeRepository.findById(employeeId)
+    const isEmployee: Employee = await employeeRepository.findById(employeeId)
 
     if(!isEmployee) {
         throw errors.notFound('employee', 'employees')
     }
 
-    const isCardType: cardRepository.Card = await cardRepository.findByTypeAndEmployeeId(type, employeeId)
+    const isCardType: Card = await cardRepository.findByTypeAndEmployeeId(type, employeeId)
 
     if(isCardType) {
         throw errors.conflict('employee', 'have a card with this type')
@@ -51,7 +43,7 @@ async function validateCardProperties(apiKey: string, employeeId: number, type: 
     return isEmployee
 }
 
-function generateNumberDateCvv(): cardRepository.CardUpdateData {
+function generateNumberDateCvv(): CardUpdateData {
     const cardNumber: string = faker.finance.creditCardNumber('mastercard')
     const date: string[] = dayjs().format('MM/YY').split('/')
     const expirationDate: string = `${date[0]}/${Number(date[1]) + 5}`
@@ -60,7 +52,11 @@ function generateNumberDateCvv(): cardRepository.CardUpdateData {
     return { number: cardNumber, expirationDate, securityCode: cvc }
 }
 
-async function createCardService(apiKey: string, employeeId: number, type: cardRepository.TransactionTypes) {
+function decrypteCvv(cvv: string): string {
+    return cryptr.decrypt(cvv)
+}
+
+async function createCardService(apiKey: string, employeeId: number, type: TransactionTypes): Promise<CardUpdateData> {
     const { fullName: cardHolderName } = await validateCardProperties(apiKey, employeeId, type)
 
     const cardHolderNameFormatted: string = formatCardHolderName(cardHolderName) 
@@ -74,9 +70,11 @@ async function createCardService(apiKey: string, employeeId: number, type: cardR
         securityCode,
         expirationDate,
         isVirtual: false,
-        isBlocked: false,
+        isBlocked: true,
         type
     })
+
+    return { securityCode: decrypteCvv(securityCode) }
 }
 
 async function verifyCardInfos(
@@ -84,8 +82,8 @@ async function verifyCardInfos(
     dateExpires: boolean = true, 
     password: boolean = false, 
     virtual: boolean = true
-): Promise<cardRepository.Card> {
-    const isCard: cardRepository.Card = await cardRepository.findById(cardId)
+): Promise<Card> {
+    const isCard: Card = await cardRepository.findById(cardId)
 
     if(!isCard) {
         throw errors.notFound('card', 'cards')
@@ -121,16 +119,16 @@ function decryptAndVerifyPassword(encryptedPassword: string, password: string) {
     }
 }
 
-async function activeCardService(cardId: number, password: string) {
-    const isCard: cardRepository.Card = await verifyCardInfos(cardId)
+async function activeCardService(cardId: number, password: string, cvv: string) {
+    const isCard: Card = await verifyCardInfos(cardId)
 
     if(isCard.password) {
         throw errors.conflict('current card has', 'been activated')
     }
 
-    const cvcDescrypted: string = cryptr.decrypt(isCard.securityCode)
+    const decryptedCvv: string = decrypteCvv(isCard.securityCode)
 
-    if(cvcDescrypted.length !== 3 || !cvcDescrypted) {
+    if(decryptedCvv !== cvv) {
         throw errors.unhautorized('Card cvv is invalid.')
     }
 
@@ -139,25 +137,16 @@ async function activeCardService(cardId: number, password: string) {
     await cardRepository.update(cardId, { password: encryptedPassword })
 }
 
-function convertTimestampToDate(array: any[]): any[] {
-    return array.map(object => {
-        return {
-            ...object,
-            timestamp: dayjs(object.timestamp).format('DD/MM/YYYY')
-        }
-    })
-}
-
 async function cardBalanceTransactionsService(cardId: number): Promise<BalanceTransactions>  {
-    const isCard: cardRepository.Card = await verifyCardInfos(cardId, false, false, false)
+    const isCard: Card = await verifyCardInfos(cardId, false, false, false)
 
     if(isCard.isVirtual) {
         cardId = isCard.originalCardId
     }
 
     const balance: number = await paymentRepository.balance(cardId)
-    let transactionsTimestamp: paymentRepository.PaymentWithBusinessName[] = await paymentRepository.findByCardId(cardId)
-    let rechargesTimestamp: rechargeRepository.Recharge[] = await rechargeRepository.findByCardId(cardId)
+    let transactionsTimestamp: PaymentWithBusinessName[] = await paymentRepository.findByCardId(cardId)
+    let rechargesTimestamp: Recharge[] = await rechargeRepository.findByCardId(cardId)
 
     const transactions = convertTimestampToDate(transactionsTimestamp)
     const recharges = convertTimestampToDate(rechargesTimestamp)
@@ -166,7 +155,7 @@ async function cardBalanceTransactionsService(cardId: number): Promise<BalanceTr
 }
 
 async function blockUnlockCardService(cardId: number, password: string, block: boolean) {
-    const isCard: cardRepository.Card = await verifyCardInfos(cardId, true, false, false)
+    const isCard: Card = await verifyCardInfos(cardId, true, false, false)
 
     if(block) {
         if(isCard.isBlocked) {
@@ -190,5 +179,6 @@ export {
     blockUnlockCardService, 
     verifyCardInfos, 
     decryptAndVerifyPassword,
-    generateNumberDateCvv
+    generateNumberDateCvv,
+    decrypteCvv
 }

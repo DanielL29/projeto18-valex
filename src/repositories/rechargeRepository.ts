@@ -1,12 +1,6 @@
 import connection from "../database/db.js";
-
-export interface Recharge {
-  id: number;
-  cardId: number;
-  timestamp: Date;
-  amount: number;
-}
-export type RechargeInsertData = Omit<Recharge, "id" | "timestamp">;
+import { Recharge } from "../interfaces/rechargeInterface.js";
+import { RechargeInsertData } from "../types/rechargeTypes.js";
 
 export async function findByCardId(cardId: number) {
   const result = await connection.query<Recharge, [number]>(

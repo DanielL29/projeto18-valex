@@ -5,9 +5,9 @@ async function createVirtualCard(req: Request, res: Response) {
     const cardId: number = Number(req.params.cardId)
     const password: string = req.body.password
 
-    await virtualCardRepository.createVirtualCardService(cardId, password)
+    const securityCode = await virtualCardRepository.createVirtualCardService(cardId, password)
 
-    res.sendStatus(201)
+    res.status(201).send(securityCode)
 }
 
 async function deleteVirtualCard(req: Request, res: Response) {
